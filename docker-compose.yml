@@ -1,0 +1,69 @@
+version: '3.9'
+
+services:
+  web-app:
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_SERVICE_URL=http://ai-service:5000
+      - PRINTING_SERVICE_URL=http://printing-service:5001
+    depends_on:
+      - ai-service
+      - printing-service
+    networks:
+      - pet-portrait-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    networks:
+      - pet-portrait-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ai-generated-images:/app/generated_images
+
+  printing-service:
+    build:
+      context: ./printing-service
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+    networks:
+      - pet-portrait-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - orders:/app/orders
+
+networks:
+  pet-portrait-network:
+    driver: bridge
+
+volumes:
+  ai-generated-images:
+  orders:
